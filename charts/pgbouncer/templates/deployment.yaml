@@ -1,0 +1,131 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pgbouncer.fullname" . }}
+  labels:
+    {{- include "pgbouncer.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: {{ default "1" .Values.maxSurge }}
+      maxUnavailable: {{ default "1" .Values.maxUnavailable }}
+  selector:
+    matchLabels:
+      {{- include "pgbouncer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "pgbouncer.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ default "90" .Values.terminationGracePeriodSeconds }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      serviceAccountName: {{ include "pgbouncer.serviceAccountName" . }}
+      automountServiceAccountToken: {{ default "false" .Values.serviceAccount.create }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: POOL_MODE
+              value: {{ .Values.pgbouncer.poolMode | quote }}
+            - name: SERVER_RESET_QUERY
+              value: {{ .Values.pgbouncer.serverResetQuery | quote }}
+            - name: DB_USER
+              value: {{ .Values.pgbouncer.dbUser | quote }}
+          {{- if and (kindIs "bool" .Values.pgbouncer.existingSecret.dbPassword.use) .Values.pgbouncer.existingSecret.dbPassword.use }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.pgbouncer.existingSecret.dbPassword.secretName }}
+                  key: {{ .Values.pgbouncer.existingSecret.dbPassword.secretKey }}
+          {{- else }}
+            - name: DB_PASSWORD
+              value: {{ .Values.pgbouncer.dbPassword | quote }}
+          {{- end }}
+            - name: DB_HOST
+              value: {{ .Values.pgbouncer.dbHost | quote }}
+            - name: DB_NAME
+              value: {{ .Values.pgbouncer.dbName | quote }}
+          {{- if .Values.pgbouncer.dbPort }}
+            - name: DB_PORT
+              value: {{ default "5432" .Values.pgbouncer.dbPort | quote }}
+          {{- end }}
+          {{- if .Values.pgbouncer.dbAuthType }}
+            - name: AUTH_TYPE
+              value: {{ default "md5" .Values.pgbouncer.dbAuthType | quote }}
+          {{- end }}
+            - name: LISTEN_PORT
+              value: {{ .Values.service.port | quote }}
+            - name: DEFAULT_POOL_SIZE
+              value: {{ max 10 (div (default "60" .Values.pgbouncer.globalPoolSize | int64) (int64 .Values.replicaCount)) | quote }}
+          {{- if .Values.pgbouncer.minPoolSize }}
+            - name: MIN_POOL_SIZE
+              value: {{ min (div (default "60" .Values.pgbouncer.globalPoolSize | int64) (int64 .Values.replicaCount)) (int64 .Values.pgbouncer.minPoolSize) | quote }}
+          {{- end }}
+          {{- if .Values.pgbouncer.reservePoolSize }}
+            - name: RESERVE_POOL_SIZE
+              value: {{ default "5" .Values.pgbouncer.reservePoolSize | quote }}
+          {{- end }}
+          ports:
+            - name: pgbouncer
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          startupProbe:
+            tcpSocket:
+              port: {{ .Values.service.port }}
+            failureThreshold: 12
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.service.port }}
+            periodSeconds: 60
+          {{- /* Allow existing queries clients to complete within 60 seconds */}}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5 && killall -INT pgbouncer && sleep 60"]
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/name
+                    operator: In
+                    values:
+                    - {{ include "pgbouncer.name" . }}
+                  - key: app.kubernetes.io/instance
+                    operator: In
+                    values:
+                    - {{ .Release.Name }}
+      {{- with .Values.affinity }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
