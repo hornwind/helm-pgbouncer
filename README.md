@@ -1,1 +1,1 @@
-# helm-pgbouncer
+charts/pgbouncer/README.md
