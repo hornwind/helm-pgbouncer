@@ -1,0 +1,101 @@
+# Default values for pgbouncer.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+minAvailable: 1
+
+terminationGracePeriodSeconds: ""
+
+priorityClassName: ""
+
+image:
+  repository: edoburu/pgbouncer
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 5432
+
+
+pgbouncer:
+  # pgbouncer.existingSecret -- the secret must been pre-created before deploy
+  existingSecret:
+    dbPassword:
+      # -- use existing secret with credentials or not
+      use: false
+      # -- secret name in release namespace
+      secretName: ""
+      # -- a secret key whose value will be get as a password
+      secretKey: ""
+
+  # -- auto calc globalPoolSize/replicaCount, min 10 per pod
+  globalPoolSize: 60
+
+  # -- database user
+  dbUser: ""
+  # -- database password
+  # @default -- ""
+  dbPassword: ""
+  # -- database server host.
+  # Must be pre-created as service and endpoint before deploy
+  # We use headless service with `spec.clusterIP: None`
+  dbHost: ""
+  # dbPort: "5434"
+  # -- database name
+  dbName: ""
+  # -- postgres auth type `plain` or `md5`
+  dbAuthType: md5
+  # -- no greater than globalPoolSize/replicaCount
+  minPoolSize: ""
+  reservePoolSize: ""
+  # -- pgbouncer pool mode
+  poolMode: session
+  serverResetQuery: "DISCARD ALL"
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

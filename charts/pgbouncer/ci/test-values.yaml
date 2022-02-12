@@ -1,0 +1,38 @@
+terminationGracePeriodSeconds: "30"
+
+pgbouncer:
+  # pgbouncer.existingSecret -- the secret must been pre-created before deploy
+  existingSecret:
+    dbPassword:
+      # -- use existing secret with credentials or not
+      use: false
+      # -- secret name in release namespace
+      secretName: ""
+      # -- a secret key whose value will be get as a password
+      secretKey: ""
+
+  # -- auto calc globalPoolSize/replicaCount, min 10 per pod
+  globalPoolSize: 60
+
+  # -- database user
+  dbUser: "test"
+  # -- database password
+  # @default -- ""
+  dbPassword: "test"
+  # -- database server host.
+  # Must be pre-created as service and endpoint before deploy
+  # We use headless service with `spec.clusterIP: None`
+  dbHost: "127.0.0.1"
+  # dbPort: "5434"
+  # -- database name
+  dbName: "test"
+  # -- postgres auth type `plain` or `md5`
+  dbAuthType: md5
+  # -- no greater than globalPoolSize/replicaCount
+  minPoolSize: ""
+  reservePoolSize: ""
+  # -- pgbouncer pool mode
+  poolMode: session
+  serverResetQuery: "DISCARD ALL"
+
+  resources: {}
