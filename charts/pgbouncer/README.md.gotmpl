@@ -1,0 +1,49 @@
+{{ template "chart.header" . }}
+{{ template "chart.description" . }}
+
+{{ template "chart.versionBadge" . }}{{ template "chart.typeBadge" . }}{{ template "chart.appVersionBadge" . }}
+
+## Get Repo Info
+
+```console
+helm repo add helm-pgbouncer https://hornwind.github.io/helm-pgbouncer
+helm repo update
+```
+
+_See [helm repo](https://helm.sh/docs/helm/helm_repo/) for command documentation._
+
+## Install Chart
+
+```console
+# Helm
+$ helm install [RELEASE_NAME] helm-pgbouncer/pgbouncer
+```
+
+_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
+
+## Upgrading Chart
+
+```console
+# Helm
+$ helm upgrade [RELEASE_NAME] helm-pgbouncer/pgbouncer
+```
+
+_See [helm upgrade](https://helm.sh/docs/helm/helm_upgrade/) for command documentation._
+
+
+## Uninstall Chart
+
+```console
+# Helm
+$ helm uninstall [RELEASE_NAME]
+```
+
+This removes all the Kubernetes components associated with the chart and deletes the release.
+
+_See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command documentation._
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}
+
+{{ template "helm-docs.versionFooter" . }}
